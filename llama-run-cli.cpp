@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/select.h>
 
+#include <memory>
 #include <string>
 
 #include "linenoise.h"

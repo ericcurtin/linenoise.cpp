@@ -3,7 +3,7 @@
  *
  * You can find the latest source code at:
  *
- *   http://github.com/antirez/linenoise
+ *   http://github.com/ericcurtin/linenoise.cpp
  *
  * Does a number of crazy assumptions that happen to be true in 99.9999% of
  * the 2010 UNIX computers around.

@@ -8,8 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wmissing-prototypes -pedantic -Werror")
 
 # Add the executable
-add_executable(linenoise
-    example.cpp 
+add_executable(llama-run-cli
+    llama-run-cli.cpp
     linenoise.cpp 
 )
 

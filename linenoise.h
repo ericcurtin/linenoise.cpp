@@ -9,6 +9,7 @@
  *
  * Copyright (c) 2010-2023, Salvatore Sanfilippo <antirez at gmail dot com>
  * Copyright (c) 2010-2013, Pieter Noordhuis <pcnoordhuis at gmail dot com>
+ * Copyright (c) 2025, Eric Curtin <ericcurtin17 at gmail dot com>
  *
  * All rights reserved.
  *

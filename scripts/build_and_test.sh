@@ -1,20 +1,27 @@
 #!/bin/bash
 
 main() {
-  set -exu -o pipefail
+  set -ex -o pipefail
 
   local os
   os="$(uname -s)"
-  if [ "$os" = "Darwin" ]; then
-    brew install meson
-  else
-    sudo apt install meson
+  if [ "$1" = "ci" ]; then
+    if [ "$os" = "Darwin" ]; then
+      brew install meson shellcheck
+    else
+      sudo apt install meson
+    fi
   fi
+
+  shellcheck scripts/*
+
+  local ncpu
+  ncpu="$(nproc)"
 
   export CC=gcc
   export CXX=g++
   cmake .
-  make -j $(nproc)
+  make -j "$ncpu"
 
   git clean -fdx
   meson build --buildtype=release --prefix=/usr
@@ -24,7 +31,7 @@ main() {
   export CC=clang
   export CXX=clang++
   cmake .
-  make -j $(nproc)
+  make -j "$ncpu"
 
   git clean -fdx
   meson build --buildtype=release --prefix=/usr

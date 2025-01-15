@@ -20,5 +20,5 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: build_and_test_multi
-      run: scripts/build_and_test.sh
+      run: scripts/build_and_test.sh ci
 

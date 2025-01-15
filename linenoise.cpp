@@ -120,7 +120,7 @@
 
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
 #define LINENOISE_MAX_LINE 4096
-static std::vector<const char*> unsupported_term = {"dumb","cons25","emacs",NULL};
+static std::vector<const char*> unsupported_term = {"dumb","cons25","emacs",nullptr};
 static linenoiseCompletionCallback *completionCallback = NULL;
 static linenoiseHintsCallback *hintsCallback = NULL;
 static linenoiseFreeHintsCallback *freeHintsCallback = NULL;
@@ -169,11 +169,12 @@ static void refreshLine(struct linenoiseState *l);
 __attribute__((format(printf, 1, 2)))
 /* Debugging function. */
 #if 0
-void lndebug(const char *fmt, ...) {
+static void lndebug(const char *fmt, ...) {
     static FILE *lndebug_fp = NULL;
     if (lndebug_fp == NULL) {
         lndebug_fp = fopen("/tmp/lndebug.txt", "a");
     }
+
     if (lndebug_fp != NULL) {
         va_list args;
         va_start(args, fmt);
@@ -183,7 +184,7 @@ void lndebug(const char *fmt, ...) {
     }
 }
 #else
-void lndebug(const char *, ...) {
+static void lndebug(const char *, ...) {
 }
 #endif
 
@@ -211,11 +212,9 @@ void linenoiseSetMultiLine(int ml) {
  * not able to understand basic escape sequences. */
 static int isUnsupportedTerm(void) {
     char *term = getenv("TERM");
-    int j;
-
     if (term == NULL) return 0;
-    for (j = 0; unsupported_term[j]; j++)
-        if (!strcasecmp(term,unsupported_term[j])) return 1;
+    for (int j = 0; unsupported_term[j]; ++j)
+        if (!strcasecmp(term, unsupported_term[j])) return 1;
     return 0;
 }
 
@@ -466,12 +465,12 @@ void linenoiseAddCompletion(linenoiseCompletions *lc, const char *str) {
     size_t len = strlen(str);
     char *copy, **cvec;
 
-    copy = new char(len+1);
+    copy = (char*) malloc(len + 1);
     if (copy == NULL) return;
     memcpy(copy,str,len+1);
-    cvec = (char**)realloc(lc->cvec,sizeof(char*)*(lc->len+1));
+    cvec = (char**) realloc(lc->cvec,sizeof(char*)*(lc->len+1));
     if (cvec == NULL) {
-        delete copy;
+        free(copy);
         return;
     }
     lc->cvec = cvec;

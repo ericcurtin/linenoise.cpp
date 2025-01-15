@@ -4,14 +4,14 @@
 #include <sys/select.h>
 #include "linenoise.h"
 
-void completion(const char *buf, linenoiseCompletions *lc) {
+static void completion(const char *buf, linenoiseCompletions *lc) {
     if (buf[0] == 'h') {
         linenoiseAddCompletion(lc,"hello");
         linenoiseAddCompletion(lc,"hello there");
     }
 }
 
-const char *hints(const char *buf, int *color, int *bold) {
+static const char *hints(const char *buf, int *color, int *bold) {
     if (!strcasecmp(buf,"hello")) {
         *color = 35;
         *bold = 0;

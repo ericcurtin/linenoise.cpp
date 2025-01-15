@@ -18,40 +18,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-14]
         build_type: [Release]
-        c_compiler: [gcc, clang]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v1
+    - name: build_and_test_multi
+      run: scripts/build_and_test.sh
 
-    - name: Install dependencies
-      run: |
-        if [ "${{ matrix.os }}" == "macos-14" ]; then
-          brew install gcc clang
-        else
-          sudo apt-get update
-          sudo apt-get install -y g++ clang
-        fi
-
-    - name: Set reusable strings
-      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
-      id: strings
-      shell: bash
-      run: |
-        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-
-    - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: >
-        cmake -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -S ${{ github.workspace }}
-
-    - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
-
-    - name: Test
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: ctest --build-config ${{ matrix.build_type }}

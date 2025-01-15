@@ -23,6 +23,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install dependencies
+      run: |
+        if [ "${{ matrix.os }}" == "macos-14" ]; then
+          brew install gcc clang
+        else
+          sudo apt-get update
+          sudo apt-get install -y g++ clang
+        fi
+
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
       id: strings

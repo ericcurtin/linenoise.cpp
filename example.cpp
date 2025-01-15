@@ -71,32 +71,32 @@ int main(int argc, char **argv) {
             char buf[1024];
             linenoiseEditStart(&ls,-1,-1,buf,sizeof(buf),"hello> ");
             while(1) {
-		fd_set readfds;
-		struct timeval tv;
-		int retval;
+                fd_set readfds;
+                struct timeval tv;
+                int retval;
 
-		FD_ZERO(&readfds);
-		FD_SET(ls.ifd, &readfds);
-		tv.tv_sec = 1; // 1 sec timeout
-		tv.tv_usec = 0;
+                FD_ZERO(&readfds);
+                FD_SET(ls.ifd, &readfds);
+                tv.tv_sec = 1; // 1 sec timeout
+                tv.tv_usec = 0;
 
-		retval = select(ls.ifd+1, &readfds, NULL, NULL, &tv);
-		if (retval == -1) {
-		    perror("select()");
+                retval = select(ls.ifd+1, &readfds, NULL, NULL, &tv);
+                if (retval == -1) {
+                    perror("select()");
                     exit(1);
-		} else if (retval) {
-		    line = linenoiseEditFeed(&ls);
+                } else if (retval) {
+                    line = linenoiseEditFeed(&ls);
                     /* A NULL return means: line editing is continuing.
                      * Otherwise the user hit enter or stopped editing
                      * (CTRL+C/D). */
                     if (line != linenoiseEditMore) break;
-		} else {
-		    // Timeout occurred
+                } else {
+                    // Timeout occurred
                     static int counter = 0;
                     linenoiseHide(&ls);
-		    printf("Async output %d.\n", counter++);
+                    printf("Async output %d.\n", counter++);
                     linenoiseShow(&ls);
-		}
+                }
             }
             linenoiseEditStop(&ls);
             if (line == NULL) exit(0); /* Ctrl+D/C. */

@@ -11,7 +11,7 @@ void completion(const char *buf, linenoiseCompletions *lc) {
     }
 }
 
-char *hints(const char *buf, int *color, int *bold) {
+const char *hints(const char *buf, int *color, int *bold) {
     if (!strcasecmp(buf,"hello")) {
         *color = 35;
         *bold = 0;
@@ -21,7 +21,7 @@ char *hints(const char *buf, int *color, int *bold) {
 }
 
 int main(int argc, char **argv) {
-    char *line;
+    const char *line;
     char *prgname = argv[0];
     int async = 0;
 
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
         } else if (line[0] == '/') {
             printf("Unreconized command: %s\n", line);
         }
-        free(line);
+        free((void*) line);
     }
     return 0;
 }

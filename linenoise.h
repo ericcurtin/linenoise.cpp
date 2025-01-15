@@ -45,7 +45,7 @@ extern "C" {
 
 #include <stddef.h> /* For size_t. */
 
-extern char *linenoiseEditMore;
+extern const char *linenoiseEditMore;
 
 /* The linenoiseState structure represents the state during line editing.
  * We pass this state to functions implementing specific editing
@@ -75,19 +75,19 @@ typedef struct linenoiseCompletions {
 
 /* Non blocking API. */
 int linenoiseEditStart(struct linenoiseState *l, int stdin_fd, int stdout_fd, char *buf, size_t buflen, const char *prompt);
-char *linenoiseEditFeed(struct linenoiseState *l);
+const char *linenoiseEditFeed(struct linenoiseState *l);
 void linenoiseEditStop(struct linenoiseState *l);
 void linenoiseHide(struct linenoiseState *l);
 void linenoiseShow(struct linenoiseState *l);
 
 /* Blocking API. */
-char *linenoise(const char *prompt);
+const char *linenoise(const char *prompt);
 void linenoiseFree(void *ptr);
 
 /* Completion API. */
 typedef void(linenoiseCompletionCallback)(const char *, linenoiseCompletions *);
-typedef char*(linenoiseHintsCallback)(const char *, int *color, int *bold);
-typedef void(linenoiseFreeHintsCallback)(void *);
+typedef const char*(linenoiseHintsCallback)(const char *, int *color, int *bold);
+typedef void(linenoiseFreeHintsCallback)(const char *);
 void linenoiseSetCompletionCallback(linenoiseCompletionCallback *);
 void linenoiseSetHintsCallback(linenoiseHintsCallback *);
 void linenoiseSetFreeHintsCallback(linenoiseFreeHintsCallback *);

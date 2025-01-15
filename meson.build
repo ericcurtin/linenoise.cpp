@@ -5,7 +5,7 @@ project('linenoise.cpp', 'cpp',
         'cpp_std=c++17'
   ])
 
-executable('linenoise.cpp',
+executable('linenoise',
   'example.cpp',
   'linenoise.cpp'
 )

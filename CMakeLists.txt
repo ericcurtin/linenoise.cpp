@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wmissing-prototypes -pedantic -Werror")
 
 # Add the executable
-add_executable(MyProject 
+add_executable(linenoise
     example.cpp 
     linenoise.cpp 
 )

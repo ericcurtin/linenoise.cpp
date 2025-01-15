@@ -166,23 +166,25 @@ int linenoiseHistoryAdd(const char *line);
 #define REFRESH_ALL (REFRESH_CLEAN|REFRESH_WRITE) // Do both.
 static void refreshLine(struct linenoiseState *l);
 
-/* Debugging macro. */
+__attribute__((format(printf, 1, 2)))
+/* Debugging function. */
 #if 0
-FILE *lndebug_fp = NULL;
-#define lndebug(...) \
-    do { \
-        if (lndebug_fp == NULL) { \
-            lndebug_fp = fopen("/tmp/lndebug.txt","a"); \
-            fprintf(lndebug_fp, \
-            "[%d %d %d] p: %d, rows: %d, rpos: %d, max: %d, oldmax: %d\n", \
-            (int)l->len,(int)l->pos,(int)l->oldpos,plen,rows,rpos, \
-            (int)l->oldrows,old_rows); \
-        } \
-        fprintf(lndebug_fp, ", " __VA_ARGS__); \
-        fflush(lndebug_fp); \
-    } while (0)
+void lndebug(const char *fmt, ...) {
+    static FILE *lndebug_fp = NULL;
+    if (lndebug_fp == NULL) {
+        lndebug_fp = fopen("/tmp/lndebug.txt", "a");
+    }
+    if (lndebug_fp != NULL) {
+        va_list args;
+        va_start(args, fmt);
+        vfprintf(lndebug_fp, fmt, args);
+        va_end(args);
+        fflush(lndebug_fp);
+    }
+}
 #else
-#define lndebug(fmt, ...)
+void lndebug(const char *, ...) {
+}
 #endif
 
 /* ======================= Low level terminal handling ====================== */

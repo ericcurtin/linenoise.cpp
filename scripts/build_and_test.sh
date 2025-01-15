@@ -7,7 +7,7 @@ main() {
   os="$(uname -s)"
   if [ "$1" = "ci" ]; then
     if [ "$os" = "Darwin" ]; then
-      brew install meson shellcheck
+      brew install meson shellcheck coreutils
     else
       sudo apt install meson
     fi

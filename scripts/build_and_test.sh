@@ -2,6 +2,15 @@
 
 main() {
   set -exu -o pipefail
+
+  local os
+  os="$(uname -s)"
+  if [ "$os" = "Darwin" ]; then
+    brew install meson
+  else
+    sudo apt install meson
+  fi
+
   export CC=gcc
   export CXX=g++
   cmake .

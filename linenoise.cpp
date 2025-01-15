@@ -1,3 +1,4 @@
+#ifndef _WIN32
 /*
  * You can find the latest source code at:
  *
@@ -1349,3 +1350,4 @@ int linenoiseHistoryLoad(const char *filename) {
     fclose(fp);
     return 0;
 }
+#endif

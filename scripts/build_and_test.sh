@@ -1,10 +1,6 @@
 #!/bin/bash
 
-main() {
-  set -ex -o pipefail
-
-  local os
-  os="$(uname -s)"
+install_dependencies() {
   if [ "$1" = "ci" ]; then
     if [ "$os" = "Darwin" ]; then
       brew install meson shellcheck coreutils
@@ -12,30 +8,47 @@ main() {
       sudo apt install meson
     fi
   fi
+}
 
+set_compiler() {
+  export CC="$1"
+  export CXX="$2"
+}
+
+build_with_cmake() {
+  cmake .
+  make -j "$ncpu" VERBOSE=1
+}
+
+build_with_meson() {
+  meson build --buildtype=release --prefix=/usr
+  ninja -v -C build
+}
+
+main() {
+  set -ex -o pipefail
+
+  local os
+  os="$(uname -s)"
+
+  install_dependencies "$1"  
   shellcheck scripts/*
 
   local ncpu
   ncpu="$(nproc)"
 
-  export CC=gcc
-  export CXX=g++
-  cmake .
-  make -j "$ncpu"
+  set_compiler "gcc" "g++"
+  build_with_cmake
 
   git clean -fdx
-  meson build --buildtype=release --prefix=/usr
-  ninja -v -C build
+  build_with_meson
 
   git clean -fdx
-  export CC=clang
-  export CXX=clang++
-  cmake .
-  make -j "$ncpu"
+  set_compiler "clang" "clang++"
+  build_with_cmake
 
   git clean -fdx
-  meson build --buildtype=release --prefix=/usr
-  ninja -v -C build
+  build_with_meson
 }
 
 main "$@"

@@ -3,7 +3,7 @@
  * Guerrilla line editing library against the idea that a line editing lib
  * needs to be 20,000 lines of C code.
  *
- * See linenoise.c for more information.
+ * See linenoise.cpp for more information.
  *
  * ------------------------------------------------------------------------
  *

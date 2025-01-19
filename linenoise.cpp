@@ -103,23 +103,25 @@
  *
  */
 
-#include <termios.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <vector>
-#include "linenoise.h"
+#    include "linenoise.h"
 
-#define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
-#define LINENOISE_MAX_LINE 4096
+#    include <ctype.h>
+#    include <errno.h>
+#    include <stdio.h>
+#    include <stdlib.h>
+#    include <string.h>
+#    include <sys/file.h>
+#    include <sys/ioctl.h>
+#    include <sys/stat.h>
+#    include <sys/types.h>
+#    include <termios.h>
+#    include <unistd.h>
+
+#    include <string>
+#    include <vector>
+
+#    define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
+#    define LINENOISE_MAX_LINE                4096
 static std::vector<const char*> unsupported_term = {"dumb","cons25","emacs",nullptr};
 static linenoiseCompletionCallback *completionCallback = NULL;
 static linenoiseHintsCallback *hintsCallback = NULL;
@@ -166,21 +168,58 @@ int linenoiseHistoryAdd(const char *line);
 #define REFRESH_ALL (REFRESH_CLEAN|REFRESH_WRITE) // Do both.
 static void refreshLine(struct linenoiseState *l);
 
+class File {
+  public:
+    FILE * file = nullptr;
+
+    FILE * open(const std::string & filename, const char * mode) {
+        file = fopen(filename.c_str(), mode);
+
+        return file;
+    }
+
+    int lock() {
+        if (file) {
+            fd = fileno(file);
+            if (flock(fd, LOCK_EX | LOCK_NB) != 0) {
+                fd = -1;
+
+                return 1;
+            }
+        }
+
+        return 0;
+    }
+
+    ~File() {
+        if (fd >= 0) {
+            flock(fd, LOCK_UN);
+        }
+
+        if (file) {
+            fclose(file);
+        }
+    }
+
+  private:
+    int fd = -1;
+};
+
 __attribute__((format(printf, 1, 2)))
 /* Debugging function. */
 #if 0
 static void lndebug(const char *fmt, ...) {
-    static FILE *lndebug_fp = NULL;
-    if (lndebug_fp == NULL) {
-        lndebug_fp = fopen("/tmp/lndebug.txt", "a");
+    static File file;
+    if (file.file == nullptr) {
+        file.open("/tmp/lndebug.txt", "a");
     }
 
-    if (lndebug_fp != NULL) {
+    if (file.file != nullptr) {
         va_list args;
         va_start(args, fmt);
-        vfprintf(lndebug_fp, fmt, args);
+        vfprintf(file.file, fmt, args);
         va_end(args);
-        fflush(lndebug_fp);
+        fflush(file.file);
     }
 }
 #else
@@ -1313,16 +1352,17 @@ int linenoiseHistorySetMaxLen(int len) {
  * otherwise -1 is returned. */
 int linenoiseHistorySave(const char *filename) {
     mode_t old_umask = umask(S_IXUSR|S_IRWXG|S_IRWXO);
-    FILE *fp;
-    int j;
-
-    fp = fopen(filename,"w");
+    File   file;
+    file.open(filename, "w");
     umask(old_umask);
-    if (fp == NULL) return -1;
+    if (file.file == NULL) {
+        return -1;
+    }
     chmod(filename,S_IRUSR|S_IWUSR);
-    for (j = 0; j < history_len; j++)
-        fprintf(fp,"%s\n",history[j]);
-    fclose(fp);
+    for (int j = 0; j < history_len; ++j) {
+        fprintf(file.file, "%s\n", history[j]);
+    }
+
     return 0;
 }
 
@@ -1332,12 +1372,14 @@ int linenoiseHistorySave(const char *filename) {
  * If the file exists and the operation succeeded 0 is returned, otherwise
  * on error -1 is returned. */
 int linenoiseHistoryLoad(const char *filename) {
-    FILE *fp = fopen(filename,"r");
+    File file;
+    file.open(filename, "r");
     char buf[LINENOISE_MAX_LINE];
+    if (file.file == NULL) {
+        return -1;
+    }
 
-    if (fp == NULL) return -1;
-
-    while (fgets(buf,LINENOISE_MAX_LINE,fp) != NULL) {
+    while (fgets(buf, LINENOISE_MAX_LINE, file.file) != NULL) {
         char *p;
 
         p = strchr(buf,'\r');
@@ -1345,7 +1387,6 @@ int linenoiseHistoryLoad(const char *filename) {
         if (p) *p = '\0';
         linenoiseHistoryAdd(buf);
     }
-    fclose(fp);
     return 0;
 }
 #endif

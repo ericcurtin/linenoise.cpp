@@ -613,7 +613,7 @@ static void refreshSingleLine(struct linenoiseState *l, int flags) {
         abAppend(&ab,seq,strlen(seq));
     }
 
-    write(fd, ab.b, ab.len); /* Can't recover from write error. */
+    (void) !write(fd, ab.b, ab.len); /* Can't recover from write error. */
 }
 
 /* Multi line low level line refresh.
@@ -713,7 +713,7 @@ static void refreshMultiLine(struct linenoiseState *l, int flags) {
     lndebug("\n");
     l->oldpos = l->pos;
 
-    write(fd, ab.b, ab.len); /* Can't recover from write error. */
+    (void) !write(fd, ab.b, ab.len); /* Can't recover from write error. */
 }
 
 /* Calls the two low level functions refreshSingleLine() or

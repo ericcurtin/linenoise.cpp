@@ -116,6 +116,7 @@
 #    include <termios.h>
 #    include <unistd.h>
 
+#    include <memory>
 #    include <string>
 #    include <vector>
 
@@ -488,19 +489,20 @@ void linenoiseSetFreeHintsCallback(linenoiseFreeHintsCallback *fn) {
  * user typed <tab>. See the example.c source code for a very easy to
  * understand example. */
 void linenoiseAddCompletion(linenoiseCompletions *lc, const char *str) {
-    size_t len = strlen(str);
-    char *copy, **cvec;
-
-    copy = (char*) malloc(len + 1);
-    if (copy == NULL) return;
-    memcpy(copy,str,len+1);
-    cvec = (char**) realloc(lc->cvec,sizeof(char*)*(lc->len+1));
-    if (cvec == NULL) {
-        free(copy);
+    const size_t len  = strlen(str);
+    auto         copy = std::make_unique<char[]>(len + 1);
+    if (!copy) {
         return;
     }
+
+    memcpy(copy.get(), str, len + 1);
+    char ** cvec = static_cast<char **>(std::realloc(lc->cvec, sizeof(char *) * (lc->len + 1)));
+    if (cvec == nullptr) {
+        return;
+    }
+
     lc->cvec = cvec;
-    lc->cvec[lc->len++] = copy;
+    lc->cvec[lc->len++] = copy.release();
 }
 
 /* =========================== Line editing ================================= */

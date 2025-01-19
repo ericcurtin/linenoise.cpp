@@ -508,36 +508,9 @@ void linenoiseAddCompletion(linenoiseCompletions *lc, const char *str) {
     lc->cvec[lc->len++] = copy.release();
 }
 
-/* =========================== Line editing ================================= */
-
-/* We define a very simple "append buffer" structure, that is an heap
- * allocated string where we can append to. This is useful in order to
- * write all the escape sequences in a buffer and flush them to the standard
- * output in a single call, to avoid flickering effects. */
-struct abuf {
-    char *b;
-    int len;
-
-    ~abuf() { free(b); }
-};
-
-static void abInit(struct abuf *ab) {
-    ab->b = NULL;
-    ab->len = 0;
-}
-
-static void abAppend(struct abuf *ab, const char *s, int len) {
-    char *new_ptr = (char*) realloc(ab->b,ab->len+len);
-
-    if (new_ptr == NULL) return;
-    memcpy(new_ptr+ab->len,s,len);
-    ab->b = new_ptr;
-    ab->len += len;
-}
-
 /* Helper of refreshSingleLine() and refreshMultiLine() to show hints
  * to the right of the prompt. */
-static void refreshShowHints(struct abuf * ab, struct linenoiseState * l, int plen) {
+static void refreshShowHints(std::string & ab, struct linenoiseState * l, int plen) {
     char seq[64];
     if (hintsCallback && plen+l->len < l->cols) {
         int color = -1, bold = 0;
@@ -551,10 +524,11 @@ static void refreshShowHints(struct abuf * ab, struct linenoiseState * l, int pl
                 snprintf(seq,64,"\033[%d;%d;49m",bold,color);
             else
                 seq[0] = '\0';
-            abAppend(ab,seq,strlen(seq));
-            abAppend(ab,hint,hintlen);
+            ab.append(seq);
+            ab.append(hint, hintlen);
             if (color != -1 || bold != 0)
-                abAppend(ab,"\033[0m",4);
+                ab.append("\033[0m");
+
             /* Call the function to free the hint returned. */
             if (freeHintsCallback) freeHintsCallback(hint);
         }
@@ -575,8 +549,7 @@ static void refreshSingleLine(struct linenoiseState *l, int flags) {
     char *buf = l->buf;
     size_t len = l->len;
     size_t pos = l->pos;
-    struct abuf ab;
-
+    std::string ab;
     while((plen+pos) >= l->cols) {
         buf++;
         len--;
@@ -586,34 +559,34 @@ static void refreshSingleLine(struct linenoiseState *l, int flags) {
         len--;
     }
 
-    abInit(&ab);
     /* Cursor to left edge */
     snprintf(seq,sizeof(seq),"\r");
-    abAppend(&ab,seq,strlen(seq));
+    ab.append(seq);
 
     if (flags & REFRESH_WRITE) {
         /* Write the prompt and the current buffer content */
-        abAppend(&ab,l->prompt,strlen(l->prompt));
+        ab.append(l->prompt);
         if (maskmode == 1) {
-            while (len--) abAppend(&ab,"*",1);
+            while (len--) {
+                ab.append("*");
+            }
         } else {
-            abAppend(&ab,buf,len);
+            ab.append(buf, len);
         }
         /* Show hits if any. */
-        refreshShowHints(&ab,l,plen);
+        refreshShowHints(ab, l, plen);
     }
 
     /* Erase to right */
     snprintf(seq,sizeof(seq),"\x1b[0K");
-    abAppend(&ab,seq,strlen(seq));
-
+    ab.append(seq);
     if (flags & REFRESH_WRITE) {
         /* Move cursor to original position. */
         snprintf(seq,sizeof(seq),"\r\x1b[%dC", (int)(pos+plen));
-        abAppend(&ab,seq,strlen(seq));
+        ab.append(seq);
     }
 
-    (void) !write(fd, ab.b, ab.len); /* Can't recover from write error. */
+    (void) !write(fd, ab.c_str(), ab.size()); /* Can't recover from write error. */
 }
 
 /* Multi line low level line refresh.
@@ -632,26 +605,23 @@ static void refreshMultiLine(struct linenoiseState *l, int flags) {
     int col; /* colum position, zero-based. */
     int old_rows = l->oldrows;
     int fd = l->ofd, j;
-    struct abuf ab;
-
+    std::string ab;
     l->oldrows = rows;
 
     /* First step: clear all the lines used before. To do so start by
      * going to the last row. */
-    abInit(&ab);
-
     if (flags & REFRESH_CLEAN) {
         if (old_rows-rpos > 0) {
             lndebug("go down %d", old_rows-rpos);
             snprintf(seq,64,"\x1b[%dB", old_rows-rpos);
-            abAppend(&ab,seq,strlen(seq));
+            ab.append(seq);
         }
 
         /* Now for every row clear it, go up. */
         for (j = 0; j < old_rows-1; j++) {
             lndebug("clear+up");
             snprintf(seq,64,"\r\x1b[0K\x1b[1A");
-            abAppend(&ab,seq,strlen(seq));
+            ab.append(seq);
         }
     }
 
@@ -659,21 +629,22 @@ static void refreshMultiLine(struct linenoiseState *l, int flags) {
         /* Clean the top line. */
         lndebug("clear");
         snprintf(seq,64,"\r\x1b[0K");
-        abAppend(&ab,seq,strlen(seq));
+        ab.append(seq);
     }
 
     if (flags & REFRESH_WRITE) {
         /* Write the prompt and the current buffer content */
-        abAppend(&ab,l->prompt,strlen(l->prompt));
+        ab.append(l->prompt);
         if (maskmode == 1) {
-            unsigned int i;
-            for (i = 0; i < l->len; i++) abAppend(&ab,"*",1);
+            for (unsigned int i = 0; i < l->len; ++i) {
+                ab.append("*");
+            }
         } else {
-            abAppend(&ab,l->buf,l->len);
+            ab.append(l->buf, l->len);
         }
 
         /* Show hits if any. */
-        refreshShowHints(&ab,l,plen);
+        refreshShowHints(ab, l, plen);
 
         /* If we are at the very end of the screen with our prompt, we need to
          * emit a newline and move the prompt to the first column. */
@@ -682,9 +653,9 @@ static void refreshMultiLine(struct linenoiseState *l, int flags) {
             (l->pos+plen) % l->cols == 0)
         {
             lndebug("<newline>");
-            abAppend(&ab,"\n",1);
+            ab.append("\n");
             snprintf(seq,64,"\r");
-            abAppend(&ab,seq,strlen(seq));
+            ab.append(seq);
             rows++;
             if (rows > (int)l->oldrows) l->oldrows = rows;
         }
@@ -697,7 +668,7 @@ static void refreshMultiLine(struct linenoiseState *l, int flags) {
         if (rows-rpos2 > 0) {
             lndebug("go-up %d", rows-rpos2);
             snprintf(seq,64,"\x1b[%dA", rows-rpos2);
-            abAppend(&ab,seq,strlen(seq));
+            ab.append(seq);
         }
 
         /* Set column. */
@@ -707,13 +678,12 @@ static void refreshMultiLine(struct linenoiseState *l, int flags) {
             snprintf(seq,64,"\r\x1b[%dC", col);
         else
             snprintf(seq,64,"\r");
-        abAppend(&ab,seq,strlen(seq));
+        ab.append(seq);
     }
 
     lndebug("\n");
     l->oldpos = l->pos;
-
-    (void) !write(fd, ab.b, ab.len); /* Can't recover from write error. */
+    (void) !write(fd, ab.c_str(), ab.size()); /* Can't recover from write error. */
 }
 
 /* Calls the two low level functions refreshSingleLine() or

@@ -512,6 +512,8 @@ void linenoiseAddCompletion(linenoiseCompletions *lc, const char *str) {
 struct abuf {
     char *b;
     int len;
+
+    ~abuf() { free(b); }
 };
 
 static void abInit(struct abuf *ab) {
@@ -526,10 +528,6 @@ static void abAppend(struct abuf *ab, const char *s, int len) {
     memcpy(new_ptr+ab->len,s,len);
     ab->b = new_ptr;
     ab->len += len;
-}
-
-static void abFree(struct abuf *ab) {
-    free(ab->b);
 }
 
 /* Helper of refreshSingleLine() and refreshMultiLine() to show hints
@@ -610,8 +608,7 @@ static void refreshSingleLine(struct linenoiseState *l, int flags) {
         abAppend(&ab,seq,strlen(seq));
     }
 
-    if (write(fd,ab.b,ab.len) == -1) {} /* Can't recover from write error. */
-    abFree(&ab);
+    write(fd, ab.b, ab.len); /* Can't recover from write error. */
 }
 
 /* Multi line low level line refresh.
@@ -711,8 +708,7 @@ static void refreshMultiLine(struct linenoiseState *l, int flags) {
     lndebug("\n");
     l->oldpos = l->pos;
 
-    if (write(fd,ab.b,ab.len) == -1) {} /* Can't recover from write error. */
-    abFree(&ab);
+    write(fd, ab.b, ab.len); /* Can't recover from write error. */
 }
 
 /* Calls the two low level functions refreshSingleLine() or

@@ -122,7 +122,7 @@
 
 #    define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
 #    define LINENOISE_MAX_LINE                4096
-static std::vector<const char*> unsupported_term = {"dumb","cons25","emacs",nullptr};
+static std::vector<const char *>    unsupported_term   = { "dumb", "cons25", "emacs" };
 static linenoiseCompletionCallback *completionCallback = NULL;
 static linenoiseHintsCallback *hintsCallback = NULL;
 static linenoiseFreeHintsCallback *freeHintsCallback = NULL;
@@ -252,8 +252,11 @@ void linenoiseSetMultiLine(int ml) {
 static int isUnsupportedTerm(void) {
     char *term = getenv("TERM");
     if (term == NULL) return 0;
-    for (int j = 0; unsupported_term[j]; ++j)
-        if (!strcasecmp(term, unsupported_term[j])) return 1;
+    for (size_t j = 0; j < unsupported_term.size(); ++j) {
+        if (!strcasecmp(term, unsupported_term[j])) {
+            return 1;
+        }
+    }
     return 0;
 }
 

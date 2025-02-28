@@ -32,7 +32,7 @@ main() {
   os="$(uname -s)"
 
   install_dependencies "$1"  
-  shellcheck scripts/*
+  shellcheck scripts/*.sh
 
   local ncpu
   ncpu="$(nproc)"

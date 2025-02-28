@@ -8,6 +8,8 @@ static void completion(const char *buf, linenoiseCompletions *lc) {
     if (buf[0] == 'h') {
         linenoiseAddCompletion(lc,"hello");
         linenoiseAddCompletion(lc,"hello there");
+        linenoiseAddCompletion(lc,"hello 😀");
+        linenoiseAddCompletion(lc,"こんにちは");
     }
 }
 
@@ -16,6 +18,11 @@ static const char *hints(const char *buf, int *color, int *bold) {
         *color = 35;
         *bold = 0;
         return " World";
+    }
+    if (!strcasecmp(buf,"こんにちは")) {
+        *color = 35;
+        *bold = 0;
+        return " 世界";
     }
     return NULL;
 }
@@ -61,7 +68,7 @@ int main(int argc, char **argv) {
 
     while(1) {
         if (!async) {
-            line = linenoise("hello> ");
+            line = linenoise("😀 \033[32mhello\x1b[0m> ");
             if (line == NULL) break;
         } else {
             /* Asynchronous mode using the multiplexing API: wait for
@@ -116,7 +123,7 @@ int main(int argc, char **argv) {
         } else if (!strncmp(line, "/unmask", 7)) {
             linenoiseMaskModeDisable();
         } else if (line[0] == '/') {
-            printf("Unreconized command: %s\n", line);
+            printf("Unrecognized command: %s\n", line);
         }
         free((void*) line);
     }

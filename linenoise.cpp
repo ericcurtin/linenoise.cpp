@@ -872,7 +872,7 @@ static int completeLine(struct linenoiseState *ls, int keypressed) {
         ls->in_completion = 0;
     } else {
         switch(c) {
-            case 9: /* tab */
+            case TAB: /* tab */
                 if (ls->in_completion == 0) {
                     ls->in_completion = 1;
                     ls->completion_idx = 0;
@@ -882,7 +882,7 @@ static int completeLine(struct linenoiseState *ls, int keypressed) {
                 }
                 c = 0;
                 break;
-            case 27: /* escape */
+            case ESC: /* escape */
                 /* Re-show original buffer */
                 if (ls->completion_idx < lc.len) refreshLine(ls);
                 ls->in_completion = 0;
@@ -1493,7 +1493,7 @@ const char *linenoiseEditFeed(struct linenoiseState *l) {
         errno = EAGAIN;
         return NULL;
     case BACKSPACE:   /* backspace */
-    case 8:     /* ctrl-h */
+    case CTRL_H:     /* ctrl-h */
         linenoiseEditBackspace(l);
         break;
     case CTRL_D:     /* ctrl-d, remove char at right of cursor, or if the

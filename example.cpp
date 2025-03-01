@@ -9,7 +9,13 @@ static void completion(const char *buf, linenoiseCompletions *lc) {
         linenoiseAddCompletion(lc,"hello");
         linenoiseAddCompletion(lc,"hello there");
         linenoiseAddCompletion(lc,"hello 😀");
-        linenoiseAddCompletion(lc,"こんにちは");
+    }
+
+    const auto こ = "こ";
+    if (!strncmp(buf, こ, strlen(こ))) {
+        linenoiseAddCompletion(lc,"こんにちは hello");
+        linenoiseAddCompletion(lc,"こんにちは hello there");
+        linenoiseAddCompletion(lc,"こんにちは hello 😀");
     }
 }
 

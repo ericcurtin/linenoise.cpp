@@ -1514,10 +1514,16 @@ const char *linenoiseEditFeed(struct linenoiseState *l) {
         break;
     case CTRL_T:    /* ctrl-t, swaps current character with previous. */
         if (l->pos > 0 && l->pos < l->len) {
-            int aux = l->buf[l->pos-1];
-            l->buf[l->pos-1] = l->buf[l->pos];
-            l->buf[l->pos] = aux;
-            if (l->pos != l->len-1) l->pos++;
+            auto prev_chlen = prevCharLen(l->buf,l->len,l->pos,NULL);
+            auto curr_chlen = nextCharLen(l->buf,l->len,l->pos,NULL);
+
+            std::string prev_char(prev_chlen, 0);
+            memcpy(prev_char.data(), l->buf+l->pos-prev_chlen, prev_chlen);
+            memmove(l->buf+l->pos-prev_chlen, l->buf+l->pos, curr_chlen);
+            memmove(l->buf+l->pos-prev_chlen+curr_chlen, prev_char.data(), prev_chlen);
+
+            if (l->pos+curr_chlen != l->len) l->pos += curr_chlen;
+
             refreshLine(l);
         }
         break;

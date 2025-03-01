@@ -1514,8 +1514,8 @@ const char *linenoiseEditFeed(struct linenoiseState *l) {
 
             std::string prev_char(prev_chlen, 0);
             memcpy(prev_char.data(), l->buf+l->pos-prev_chlen, prev_chlen);
-            memcpy(l->buf+l->pos-prev_chlen, l->buf+l->pos, curr_chlen);
-            memcpy(l->buf+l->pos-prev_chlen+curr_chlen, prev_char.data(), prev_chlen);
+            memmove(l->buf+l->pos-prev_chlen, l->buf+l->pos, curr_chlen);
+            memmove(l->buf+l->pos-prev_chlen+curr_chlen, prev_char.data(), prev_chlen);
 
             if (l->pos+curr_chlen != l->len) l->pos += curr_chlen;
 

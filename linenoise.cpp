@@ -311,9 +311,12 @@ static const size_t wideCharTableSize =
     sizeof(wideCharTable) / sizeof(wideCharTable[0]);
 
 static int isWideChar(unsigned long cp) {
-    size_t i;
-    for (i = 0; i < wideCharTableSize; i++)
-        if (wideCharTable[i][0] <= cp && cp <= wideCharTable[i][1]) return 1;
+    for (size_t i = 0; i < wideCharTableSize; i++) {
+        auto first_code = wideCharTable[i][0];
+        auto last_code = wideCharTable[i][1];
+        if (first_code > cp) return 0;
+        if (first_code <= cp && cp <= last_code) return 1;
+    }
     return 0;
 }
 
@@ -580,9 +583,11 @@ static const unsigned long combiningCharTableSize =
     sizeof(combiningCharTable) / sizeof(combiningCharTable[0]);
 
 static int isCombiningChar(unsigned long cp) {
-    size_t i;
-    for (i = 0; i < combiningCharTableSize; i++)
-        if (combiningCharTable[i] == cp) return 1;
+    for (size_t i = 0; i < combiningCharTableSize; i++) {
+        auto code = combiningCharTable[i];
+        if (code > cp) return 0;
+        if (code == cp) return 1;
+    }
     return 0;
 }
 

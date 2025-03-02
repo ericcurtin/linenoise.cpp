@@ -310,14 +310,14 @@ static const unsigned long wideCharTable[][2] = {
 static const size_t wideCharTableSize =
     sizeof(wideCharTable) / sizeof(wideCharTable[0]);
 
-static int isWideChar(unsigned long cp) {
+static bool isWideChar(unsigned long cp) {
     for (size_t i = 0; i < wideCharTableSize; i++) {
         auto first_code = wideCharTable[i][0];
         auto last_code = wideCharTable[i][1];
-        if (first_code > cp) return 0;
-        if (first_code <= cp && cp <= last_code) return 1;
+        if (first_code > cp) return false;
+        if (first_code <= cp && cp <= last_code) return true;
     }
-    return 0;
+    return false;
 }
 
 /* Check if the code is a combining character */
@@ -582,13 +582,13 @@ static const unsigned long combiningCharTable[] = {
 static const unsigned long combiningCharTableSize =
     sizeof(combiningCharTable) / sizeof(combiningCharTable[0]);
 
-static int isCombiningChar(unsigned long cp) {
+static bool isCombiningChar(unsigned long cp) {
     for (size_t i = 0; i < combiningCharTableSize; i++) {
         auto code = combiningCharTable[i];
-        if (code > cp) return 0;
-        if (code == cp) return 1;
+        if (code > cp) return false;
+        if (code == cp) return true;
     }
-    return 0;
+    return false;
 }
 
 /* Get length of previous grapheme */

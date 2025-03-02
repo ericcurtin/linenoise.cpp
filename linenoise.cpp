@@ -206,9 +206,9 @@ class File {
     int fd = -1;
 };
 
-__attribute__((format(printf, 1, 2)))
-/* Debugging function. */
 #if 0
+/* Debugging function. */
+__attribute__((format(printf, 1, 2)))
 static void lndebug(const char *fmt, ...) {
     static File file;
     if (file.file == nullptr) {
@@ -222,9 +222,6 @@ static void lndebug(const char *fmt, ...) {
         va_end(args);
         fflush(file.file);
     }
-}
-#else
-static void lndebug(const char *, ...) {
 }
 #endif
 
@@ -1194,14 +1191,12 @@ static void refreshMultiLine(struct linenoiseState *l, int flags) {
      * going to the last row. */
     if (flags & REFRESH_CLEAN) {
         if (old_rows-rpos > 0) {
-            lndebug("go down %d", old_rows-rpos);
             snprintf(seq,64,"\x1b[%dB", old_rows-rpos);
             ab.append(seq);
         }
 
         /* Now for every row clear it, go up. */
         for (j = 0; j < old_rows-1; j++) {
-            lndebug("clear+up");
             snprintf(seq,64,"\r\x1b[0K\x1b[1A");
             ab.append(seq);
         }
@@ -1209,7 +1204,6 @@ static void refreshMultiLine(struct linenoiseState *l, int flags) {
 
     if (flags & REFRESH_ALL) {
         /* Clean the top line. */
-        lndebug("clear");
         snprintf(seq,64,"\r\x1b[0K");
         ab.append(seq);
     }
@@ -1237,7 +1231,6 @@ static void refreshMultiLine(struct linenoiseState *l, int flags) {
             l->pos == l->len &&
             (colpos2+pcollen) % l->cols == 0)
         {
-            lndebug("<newline>");
             ab.append("\n");
             snprintf(seq,64,"\r");
             ab.append(seq);
@@ -1247,18 +1240,15 @@ static void refreshMultiLine(struct linenoiseState *l, int flags) {
 
         /* Move cursor to right position. */
         rpos2 = (pcollen+colpos2+l->cols)/l->cols; /* Current cursor relative row */
-        lndebug("rpos2 %d", rpos2);
 
         /* Go up till we reach the expected position. */
         if (rows-rpos2 > 0) {
-            lndebug("go-up %d", rows-rpos2);
             snprintf(seq,64,"\x1b[%dA", rows-rpos2);
             ab.append(seq);
         }
 
         /* Set column. */
         col = (pcollen+colpos2) % l->cols;
-        lndebug("set col %d", 1+col);
         if (col)
             snprintf(seq,64,"\r\x1b[%dC", col);
         else
@@ -1266,7 +1256,6 @@ static void refreshMultiLine(struct linenoiseState *l, int flags) {
         ab.append(seq);
     }
 
-    lndebug("\n");
     l->oldcolpos = colpos2;
 
     (void) !write(fd, ab.c_str(), ab.size()); /* Can't recover from write error. */

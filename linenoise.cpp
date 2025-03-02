@@ -1522,7 +1522,8 @@ const char *linenoiseEditFeed(struct linenoiseState *l) {
             memmove(l->buf+l->pos-prev_chlen, l->buf+l->pos, curr_chlen);
             memmove(l->buf+l->pos-prev_chlen+curr_chlen, prev_char.data(), prev_chlen);
 
-            if (l->pos+curr_chlen != l->len) l->pos += curr_chlen;
+            l->pos = l->pos - prev_chlen + curr_chlen;
+            if (l->pos + prev_chlen != l->len) l->pos += curr_chlen;
 
             refreshLine(l);
         }

@@ -205,9 +205,9 @@ class File {
     int fd = -1;
 };
 
-__attribute__((format(printf, 1, 2)))
-/* Debugging function. */
 #if 0
+/* Debugging function. */
+__attribute__((format(printf, 1, 2)))
 static void lndebug(const char *fmt, ...) {
     static File file;
     if (file.file == nullptr) {
@@ -221,9 +221,6 @@ static void lndebug(const char *fmt, ...) {
         va_end(args);
         fflush(file.file);
     }
-}
-#else
-static void lndebug(const char *, ...) {
 }
 #endif
 

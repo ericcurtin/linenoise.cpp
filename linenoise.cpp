@@ -1499,112 +1499,62 @@ int linenoiseEditStart(struct linenoiseState *l, int stdin_fd, int stdout_fd, ch
 
 const char* linenoiseEditMore = "If you see this, you are misusing the API: when linenoiseEditFeed() is called, if it returns linenoiseEditMore the user is yet editing the line. See the README file for more information.";
 
-/* This function is part of the multiplexed API of linenoise, see the top
- * comment on linenoiseEditStart() for more information. Call this function
- * each time there is some data to read from the standard input file
- * descriptor. In the case of blocking operations, this function can just be
- * called in a loop, and block.
- *
- * The function returns linenoiseEditMore to signal that line editing is still
- * in progress, that is, the user didn't yet pressed enter / CTRL-D. Otherwise
- * the function returns the pointer to the heap-allocated buffer with the
- * edited line, that the user should free with linenoiseFree().
- *
- * On special conditions, NULL is returned and errno is populated:
- *
- * EAGAIN if the user pressed Ctrl-C
- * ENOENT if the user pressed Ctrl-D
- *
- * Some other errno: I/O error.
- */
-const char *linenoiseEditFeed(struct linenoiseState *l) {
-    /* Not a TTY, pass control to line reading without character
-     * count limits. */
-    if (!isatty(l->ifd)) return linenoiseNoTTY();
-
-    int c;
-    int nread;
-    char cbuf[32]; // large enough for any encoding?
-
-    nread = readCode(l->ifd,cbuf,sizeof(cbuf),&c);
-    if (nread <= 0) return NULL;
-
-    auto esc_type = ESC_NULL;
-    if (c == ESC) {
-        esc_type = readEscapeSequence(l);
+static const char * handleEnterKey(struct linenoiseState * l) {
+    --history_len;
+    free(history[history_len]);
+    if (mlmode) {
+        linenoiseEditMoveEnd(l);
+    }
+    if (hintsCallback) {
+        /* Force a refresh without hints to leave the previous
+         * line as the user typed it after a newline. */
+        linenoiseHintsCallback * hc = hintsCallback;
+        hintsCallback               = NULL;
+        refreshLine(l);
+        hintsCallback = hc;
     }
 
-    /* Only autocomplete when the callback is set. It returns < 0 when
-     * there was an error reading from fd. Otherwise it will return the
-     * character that should be handled next. */
-    if ((l->in_completion || c == 9) && completionCallback != NULL) {
-        c = completeLine(l,c,esc_type);
-        /* Read next character when 0 */
-        if (c == 0) return linenoiseEditMore;
+    return strdup(l->buf);
+}
+
+static const char * handleCtrlCKey() {
+    errno = EAGAIN;
+    return NULL;
+}
+
+static const char * handleCtrlDKey(struct linenoiseState * l) {
+    if (l->len > 0) {
+        linenoiseEditDelete(l);
+        return linenoiseEditMore;
     }
 
-    switch(c) {
-    case ENTER:    /* enter */
-        history_len--;
-        free(history[history_len]);
-        if (mlmode) linenoiseEditMoveEnd(l);
-        if (hintsCallback) {
-            /* Force a refresh without hints to leave the previous
-             * line as the user typed it after a newline. */
-            linenoiseHintsCallback *hc = hintsCallback;
-            hintsCallback = NULL;
-            refreshLine(l);
-            hintsCallback = hc;
-        }
-        return strdup(l->buf);
-    case CTRL_C:     /* ctrl-c */
-        errno = EAGAIN;
-        return NULL;
-    case BACKSPACE:   /* backspace */
-    case CTRL_H:     /* ctrl-h */
-        linenoiseEditBackspace(l);
-        break;
-    case CTRL_D:     /* ctrl-d, remove char at right of cursor, or if the
-                        line is empty, act as end-of-file. */
-        if (l->len > 0) {
-            linenoiseEditDelete(l);
-        } else {
-            history_len--;
-            free(history[history_len]);
-            errno = ENOENT;
-            return NULL;
-        }
-        break;
-    case CTRL_T:    /* ctrl-t, swaps current character with previous. */
-        if (l->pos > 0 && l->pos < l->len) {
-            auto prev_chlen = prevCharLen(l->buf,l->len,l->pos,NULL);
-            auto curr_chlen = nextCharLen(l->buf,l->len,l->pos,NULL);
+    --history_len;
+    free(history[history_len]);
+    errno = ENOENT;
+    return NULL;
+}
 
-            std::string prev_char(prev_chlen, 0);
-            memcpy(prev_char.data(), l->buf+l->pos-prev_chlen, prev_chlen);
-            memmove(l->buf+l->pos-prev_chlen, l->buf+l->pos, curr_chlen);
-            memmove(l->buf+l->pos-prev_chlen+curr_chlen, prev_char.data(), prev_chlen);
+static void handleCtrlTKey(struct linenoiseState * l) {
+    if (l->pos > 0 && l->pos < l->len) {
+        auto prev_chlen = prevCharLen(l->buf, l->len, l->pos, NULL);
+        auto curr_chlen = nextCharLen(l->buf, l->len, l->pos, NULL);
 
-            l->pos = l->pos - prev_chlen + curr_chlen;
-            if (l->pos + prev_chlen != l->len) l->pos += curr_chlen;
+        std::string prev_char(prev_chlen, 0);
+        memcpy(prev_char.data(), l->buf + l->pos - prev_chlen, prev_chlen);
+        memmove(l->buf + l->pos - prev_chlen, l->buf + l->pos, curr_chlen);
+        memmove(l->buf + l->pos - prev_chlen + curr_chlen, prev_char.data(), prev_chlen);
 
-            refreshLine(l);
+        l->pos = l->pos - prev_chlen + curr_chlen;
+        if (l->pos + prev_chlen != l->len) {
+            l->pos += curr_chlen;
         }
-        break;
-    case CTRL_B:     /* ctrl-b */
-        linenoiseEditMoveLeft(l);
-        break;
-    case CTRL_F:     /* ctrl-f */
-        linenoiseEditMoveRight(l);
-        break;
-    case CTRL_P:    /* ctrl-p */
-        linenoiseEditHistoryNext(l, LINENOISE_HISTORY_PREV);
-        break;
-    case CTRL_N:    /* ctrl-n */
-        linenoiseEditHistoryNext(l, LINENOISE_HISTORY_NEXT);
-        break;
-    case ESC:    /* escape sequence */
-        switch (esc_type) {
+
+        refreshLine(l);
+    }
+}
+
+static void handleEscapeSequence(struct linenoiseState * l, int esc_type) {
+    switch (esc_type) {
         case ESC_NULL:
             break;
         case ESC_DELETE:
@@ -1628,36 +1578,125 @@ const char *linenoiseEditFeed(struct linenoiseState *l) {
         case ESC_END:
             linenoiseEditMoveEnd(l);
             break;
-        }
-        break;
-    default:
-        if (linenoiseEditInsert(l,cbuf,nread)) return NULL;
-        break;
-    case CTRL_U: /* Ctrl+u, delete the whole line. */
-        l->buf[0] = '\0';
-        l->pos = l->len = 0;
-        refreshLine(l);
-        break;
-    case CTRL_K: /* Ctrl+k, delete from current to end of line. */
-        l->buf[l->pos] = '\0';
-        l->len = l->pos;
-        refreshLine(l);
-        break;
-    case CTRL_A: /* Ctrl+a, go to the start of the line */
-        linenoiseEditMoveHome(l);
-        break;
-    case CTRL_E: /* ctrl+e, go to the end of the line */
-        linenoiseEditMoveEnd(l);
-        break;
-    case CTRL_L: /* ctrl+l, clear screen */
-        linenoiseClearScreen();
-        refreshLine(l);
-        break;
-    case CTRL_W: /* ctrl+w, delete previous word */
-        linenoiseEditDeletePrevWord(l);
-        break;
+    }
+}
+
+static void handleCtrlUKey(struct linenoiseState * l) {
+    l->buf[0] = '\0';
+    l->pos = l->len = 0;
+    refreshLine(l);
+}
+
+static void handleCtrlKKey(struct linenoiseState * l) {
+    l->buf[l->pos] = '\0';
+    l->len         = l->pos;
+    refreshLine(l);
+}
+
+static const char * processInputCharacter(struct linenoiseState * l, int c, char * cbuf, int nread, int esc_type) {
+    switch (c) {
+        case ENTER:
+            return handleEnterKey(l);
+        case CTRL_C:
+            return handleCtrlCKey();
+        case BACKSPACE:
+        case CTRL_H:
+            linenoiseEditBackspace(l);
+            break;
+        case CTRL_D: /* ctrl-d, remove char at right of cursor, or if the
+                        line is empty, act as end-of-file. */
+            return handleCtrlDKey(l);
+        case CTRL_T:
+            handleCtrlTKey(l);
+            break;
+        case CTRL_B:
+            linenoiseEditMoveLeft(l);
+            break;
+        case CTRL_F:
+            linenoiseEditMoveRight(l);
+            break;
+        case CTRL_P:
+            linenoiseEditHistoryNext(l, LINENOISE_HISTORY_PREV);
+            break;
+        case CTRL_N:
+            linenoiseEditHistoryNext(l, LINENOISE_HISTORY_NEXT);
+            break;
+        case ESC:
+            handleEscapeSequence(l, esc_type);
+            break;
+        default:
+            if (linenoiseEditInsert(l, cbuf, nread)) {
+                return NULL;
+            }
+            break;
+        case CTRL_U: /* Ctrl+u, delete the whole line. */
+            handleCtrlUKey(l);
+            break;
+        case CTRL_K: /* Ctrl+k, delete from current to end of line. */
+            handleCtrlKKey(l);
+            break;
+        case CTRL_A: /* Ctrl+a, go to the start of the line */
+            linenoiseEditMoveHome(l);
+            break;
+        case CTRL_E: /* ctrl+e, go to the end of the line */
+            linenoiseEditMoveEnd(l);
+            break;
+        case CTRL_L: /* ctrl+l, clear screen */
+            linenoiseClearScreen();
+            refreshLine(l);
+            break;
+        case CTRL_W: /* ctrl+w, delete previous word */
+            linenoiseEditDeletePrevWord(l);
+            break;
     }
     return linenoiseEditMore;
+}
+
+/* This function is part of the multiplexed API of linenoise, see the top
+ * comment on linenoiseEditStart() for more information. Call this function
+ * each time there is some data to read from the standard input file
+ * descriptor. In the case of blocking operations, this function can just be
+ * called in a loop, and block.
+ *
+ * The function returns linenoiseEditMore to signal that line editing is still
+ * in progress, that is, the user didn't yet pressed enter / CTRL-D. Otherwise
+ * the function returns the pointer to the heap-allocated buffer with the
+ * edited line, that the user should free with linenoiseFree().
+ *
+ * On special conditions, NULL is returned and errno is populated:
+ *
+ * EAGAIN if the user pressed Ctrl-C
+ * ENOENT if the user pressed Ctrl-D
+ *
+ * Some other errno: I/O error.
+ */
+const char * linenoiseEditFeed(struct linenoiseState * l) {
+    /* Not a TTY, pass control to line reading without character count
+     * limits. */
+    if (!isatty(l->ifd)) return linenoiseNoTTY();
+
+    int c;
+    int nread;
+    char cbuf[32];
+
+    nread = readCode(l->ifd, cbuf, sizeof(cbuf), &c);
+    if (nread <= 0) return NULL;
+
+    auto esc_type = ESC_NULL;
+    if (c == ESC) {
+        esc_type = readEscapeSequence(l);
+    }
+
+    /* Only autocomplete when the callback is set. It returns < 0 when
+     * there was an error reading from fd. Otherwise it will return the
+     * character that should be handled next. */
+    if ((l->in_completion || c == 9) && completionCallback != NULL) {
+        c = completeLine(l, c, esc_type);
+        /* Read next character when 0 */
+        if (c == 0) return linenoiseEditMore;
+    }
+
+    return processInputCharacter(l, c, cbuf, nread, esc_type);
 }
 
 /* This is part of the multiplexed linenoise API. See linenoiseEditStart()

@@ -1535,7 +1535,7 @@ static void handleCtrlTKey(struct linenoiseState * l) {
 
         l->pos = l->pos - prev_chlen + curr_chlen;
         if (l->pos + prev_chlen != l->len) {
-            l->pos += curr_chlen;
+            l->pos += prev_chlen;
         }
 
         refreshLine(l);

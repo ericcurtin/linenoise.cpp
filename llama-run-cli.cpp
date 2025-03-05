@@ -10,7 +10,7 @@
 
 int main(int, char **) {
     while (1) {
-        static const char * prompt_prefix = "> ";
+        static const char *                         prompt_prefix = "> ";
         std::unique_ptr<char, decltype(&std::free)> line(const_cast<char *>(linenoise(prompt_prefix)), free);
         if (!line) {
             break;
@@ -27,3 +27,4 @@ int main(int, char **) {
 
     return 0;
 }
+

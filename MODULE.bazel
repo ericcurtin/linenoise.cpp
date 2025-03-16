@@ -1,0 +1,5 @@
+"linenoise"
+
+module(name='linenoise.cpp', version = "0.1.0")
+
+bazel_dep(name = "rules_cc", version = "0.1.1")

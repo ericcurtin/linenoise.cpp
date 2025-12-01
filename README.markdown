@@ -4,7 +4,7 @@ Repo achived. We wrote a C++17 version of a readline-like library here, which is
 
 https://github.com/ericcurtin/readline.cpp
 
-This was initially writte as a C++ version of:
+This was initially written as a C++ version of:
 
 https://github.com/antirez/linenoise
 
